@@ -45,10 +45,12 @@ module App =
         View.ContentPage(
           content = View.StackLayout(padding = 20.0,
             children = [
+                View.Label(text="Entry with infinite loop issue")
                 View.Entry(text=model.Text, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
                     System.Console.WriteLine("TextChanged: " + e.NewTextValue)
                     dispatch (TextChanged e.NewTextValue))
                 )
+                View.Label(text="Entry with workaround")
                 View.Entry(text=model.TextWorkaround, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
                     System.Console.WriteLine("TextChanged Workaround: " + e.NewTextValue)
                     throttledDispatch (TextChangedWorkaround e.NewTextValue))
