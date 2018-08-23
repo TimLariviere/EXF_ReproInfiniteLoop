@@ -40,18 +40,18 @@ module App =
         | TextChangedWorkaround text -> { model with TextWorkaround = text }, Cmd.none
 
     let view (model: Model) dispatch =
-        let throttledDispatch = fixf Workaround.throttle dispatch 500
+        let throttledDispatch = fixf Workaround.throttle dispatch 250
 
         View.ContentPage(
-          content = View.StackLayout(padding = 20.0, verticalOptions = LayoutOptions.Center,
+          content = View.StackLayout(padding = 20.0,
             children = [
-                View.Entry(text=model.Text, textChanged=(fun e ->
+                View.Entry(text=model.Text, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
                     System.Console.WriteLine("TextChanged: " + e.NewTextValue)
                     dispatch (TextChanged e.NewTextValue))
                 )
-                View.Entry(text=model.Text, textChanged=(fun e ->
+                View.Entry(text=model.TextWorkaround, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
                     System.Console.WriteLine("TextChanged Workaround: " + e.NewTextValue)
-                    throttledDispatch (TextChanged e.NewTextValue))
+                    throttledDispatch (TextChangedWorkaround e.NewTextValue))
                 )
             ]))
 
