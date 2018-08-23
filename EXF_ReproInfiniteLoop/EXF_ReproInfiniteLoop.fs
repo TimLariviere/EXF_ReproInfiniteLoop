@@ -23,7 +23,10 @@ module App =
         View.ContentPage(
           content = View.StackLayout(padding = 20.0, verticalOptions = LayoutOptions.Center,
             children = [
-                View.Entry(text=model.Text, textChanged=(fun e -> dispatch (TextChanged e.NewTextValue)))
+                View.Entry(text=model.Text, textChanged=(fun e ->
+                    System.Console.WriteLine("TextChanged: " + e.NewTextValue)
+                    dispatch (TextChanged e.NewTextValue))
+                )
             ]))
 
 type App () as app = 
