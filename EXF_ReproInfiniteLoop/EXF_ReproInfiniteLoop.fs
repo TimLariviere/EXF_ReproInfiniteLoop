@@ -91,7 +91,7 @@ module App =
                 View.Label(text="Entry with workaround")
                 View.Entry(text=model.TextWorkaround, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
                     System.Console.WriteLine("TextChanged Workaround: " + e.NewTextValue)
-                    debouncedDispatch (TextChangedWorkaround e.NewTextValue))
+                    throttledDispatch (TextChangedWorkaround e.NewTextValue))
                 )
                 View.Label(text="Entry with workaround v2")
                 View.Entry(text=model.TextWorkaroundV2, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
