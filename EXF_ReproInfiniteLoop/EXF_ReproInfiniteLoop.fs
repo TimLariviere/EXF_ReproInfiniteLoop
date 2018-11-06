@@ -1,4 +1,4 @@
-﻿// Copyright 2018 Elmish.XamarinForms contributors. See LICENSE.md for license.
+// Copyright 2018 Elmish.XamarinForms contributors. See LICENSE.md for license.
 namespace EXF_ReproInfiniteLoop
 
 open Elmish.XamarinForms
@@ -26,36 +26,34 @@ module Workaround =
         mailbox.Post
 
 module WorkaroundV2 =
-    type internal Memoizations() =
-        static let t = Dictionary<obj, CancellationTokenSource>(HashIdentity.Structural)
-        static member T = t
-        static member Add(key: obj, cts: CancellationTokenSource) =
-            Memoizations.T.[key] <- cts
-        static member Remove(key: obj) =
-            Memoizations.T.Remove key |> ignore
+    let debounce<'a> =
+        let memoizations = Dictionary<obj, CancellationTokenSource>(HashIdentity.Structural)
 
-    let debounce (timeout: int) fn value =
-        let key = fn.GetType()
+        fun (timeout: int) (fn: 'a -> unit) value ->
+            let key = fn.GetType()
 
-        // Cancel previous debouncer
-        match Memoizations.T.TryGetValue(key) with
-        | true, cts -> cts.Cancel()
-        | _ -> ()
-
-        // Create a new cancellation token and memoize it
-        let cts = new CancellationTokenSource()
-        Memoizations.Add(key, cts)
-
-        // Start a new debouncer
-        (async {
-            try
-                do! Async.Sleep timeout
-                Memoizations.Remove(key)
-                fn value
-            with
+            // Cancel previous debouncer
+            match memoizations.TryGetValue(key) with
+            | true, cts -> cts.Cancel()
             | _ -> ()
-        })
-        |> (fun a -> Async.StartImmediate(a, cts.Token))
+
+            // Create a new cancellation token and memoize it
+            let cts = new CancellationTokenSource()
+            memoizations.[key] <- cts
+
+            // Start a new debouncer
+            (async {
+                try
+                    // Wait timeout to see if another event will cancel this one
+                    do! Async.Sleep timeout
+
+                    // If still not cancelled, then proceed to invoke the callback and discard the unused token
+                    memoizations.Remove(key) |> ignore
+                    fn value
+                with
+                | _ -> ()
+            })
+            |> (fun task -> Async.StartImmediate(task, cts.Token))
 
 module App = 
     type Model = 
@@ -76,9 +74,8 @@ module App =
         | TextChangedWorkaround text -> { model with TextWorkaround = text }, Cmd.none
         | TextChangedWorkaroundV2 text -> { model with TextWorkaroundV2 = text }, Cmd.none
 
-    let view (model: Model) dispatch =
+    let view (model: Model) (dispatch: Msg -> unit) =
         let throttledDispatch = fixf Workaround.throttle dispatch 250
-        let debouncedDispatch = WorkaroundV2.debounce 250 dispatch
 
         View.ContentPage(
           content = View.StackLayout(padding = 20.0,
@@ -94,9 +91,10 @@ module App =
                     throttledDispatch (TextChangedWorkaround e.NewTextValue))
                 )
                 View.Label(text="Entry with workaround v2")
-                View.Entry(text=model.TextWorkaroundV2, verticalOptions = LayoutOptions.CenterAndExpand, textChanged=(fun e ->
-                    System.Console.WriteLine("TextChanged Workaround v2: " + e.NewTextValue)
-                    debouncedDispatch (TextChangedWorkaroundV2 e.NewTextValue))
+                View.Entry(
+                    text=model.TextWorkaroundV2,
+                    verticalOptions=LayoutOptions.CenterAndExpand,
+                    textChanged=(WorkaroundV2.debounce 250 (fun e -> dispatch (TextChangedWorkaroundV2 e.NewTextValue)))
                 )
             ]))
 
